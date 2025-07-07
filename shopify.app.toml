@@ -1,0 +1,28 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "Product image v3"
+client_id = "YOUR_CLIENT_ID_HERE"
+application_url = "https://your-vercel-app.vercel.app"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products,read_products"
+
+[auth]
+redirect_urls = [
+  "https://your-vercel-app.vercel.app/auth/callback",
+  "https://your-vercel-app.vercel.app/auth/shopify/callback",
+  "https://your-vercel-app.vercel.app/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2023-10"
+
+[pos]
+embedded = false
+
+[app_proxy]
+url = "https://your-vercel-app.vercel.app"
+subpath = "product-images"
+prefix = "apps" 
