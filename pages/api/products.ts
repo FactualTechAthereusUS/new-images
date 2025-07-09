@@ -56,37 +56,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (swiftPodCache.length === 0) {
                 // First request - get just enough products quickly
         try {
-          // Try to get products from first few pages in parallel for faster initial load
-          const quickRequests = [
-            axios.get(`${API_BASE}/shops/${shopId}/products.json`, {
-              headers: { 
-                'Authorization': `Bearer ${TOKEN}`,
-                'Content-Type': 'application/json'
-              },
-              params: { page: 1, limit: 100 },
-              timeout: 3000
-            }),
-            axios.get(`${API_BASE}/shops/${shopId}/products.json`, {
-              headers: { 
-                'Authorization': `Bearer ${TOKEN}`,
-                'Content-Type': 'application/json'
-              },
-              params: { page: 2, limit: 100 },
-              timeout: 3000
-            })
-          ]
-          
-          const quickResponses = await Promise.all(quickRequests)
-          
+          // Simple sequential approach for reliability
           let quickProducts: any[] = []
-          for (const response of quickResponses) {
-            const products = response.data.data || []
-            quickProducts = quickProducts.concat(products)
+          
+          // Get first 3 pages sequentially with shorter timeouts
+          for (let page = 1; page <= 3; page++) {
+            try {
+              const response = await axios.get(`${API_BASE}/shops/${shopId}/products.json`, {
+                headers: { 
+                  'Authorization': `Bearer ${TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                params: { page, limit: 100 },
+                timeout: 4000
+              })
+              
+              const products = response.data.data || []
+              quickProducts = quickProducts.concat(products)
+              
+              // Early exit if we have enough Swift Pod products
+              const swiftPodCount = quickProducts.filter((product: any) => 
+                product.print_provider_id === targetProviderId
+              ).length
+              
+              if (swiftPodCount >= 20) {
+                console.log(`Early exit: Found ${swiftPodCount} Swift Pod products`)
+                break
+              }
+            } catch (error) {
+              console.error(`Page ${page} fetch failed:`, error)
+              // Continue with next page
+            }
           }
           
           swiftPodCache = quickProducts.filter((product: any) => 
             product.print_provider_id === targetProviderId
           )
+          
           cacheTimestamp = now
           console.log(`Quick cache: ${swiftPodCache.length} Swift Pod products`)
           
