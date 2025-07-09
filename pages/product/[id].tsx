@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { fetchProductById, PrintifyProduct, PLACEHOLDER_IMAGE } from '../../utils/printify'
+import { getProxyImageUrl } from '../../utils/imageProxy'
 
 export default function ProductPage() {
   const router = useRouter()
@@ -34,7 +35,7 @@ export default function ProductPage() {
   }
 
   const openImageInNewTab = (imageUrl: string) => {
-    window.open(imageUrl, '_blank', 'noopener,noreferrer')
+    window.open(getProxyImageUrl(imageUrl), '_blank', 'noopener,noreferrer')
   }
 
   if (loading) {
@@ -132,7 +133,7 @@ export default function ProductPage() {
                 onClick={() => selectedImage && openImageInNewTab(selectedImage)}
               >
                 <img
-                  src={selectedImage || product.images?.[0]?.src || PLACEHOLDER_IMAGE}
+                  src={getProxyImageUrl(selectedImage || product.images?.[0]?.src || PLACEHOLDER_IMAGE)}
                   alt={product.title}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                 />
@@ -171,7 +172,7 @@ export default function ProductPage() {
                   >
                     <div className="aspect-square bg-gray-100">
                       <img
-                        src={image.src}
+                        src={getProxyImageUrl(image.src)}
                         alt={`${product.title} mockup ${index + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       />

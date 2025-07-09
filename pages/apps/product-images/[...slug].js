@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import { getProxyImageUrl } from '../../../utils/imageProxy'
 
 export default function ProductDetail() {
   const [product, setProduct] = useState(null)
@@ -135,7 +136,7 @@ export default function ProductDetail() {
               {product.images && product.images.length > 0 ? (
                 <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
                   <img
-                    src={product.images[0].src}
+                    src={getProxyImageUrl(product.images[0].src)}
                     alt={product.title}
                     className="w-full h-full object-cover"
                   />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { PrintifyProduct } from '../utils/printify'
+import { getProxyImageUrl } from '../utils/imageProxy'
 
 export default function Home() {
   const [products, setProducts] = useState<PrintifyProduct[]>([])
@@ -312,7 +313,7 @@ export default function Home() {
                 <div className={`${viewMode === 'list' ? 'w-24 h-24 flex-shrink-0' : 'aspect-square'} bg-gray-100 relative overflow-hidden`}>
                   {product.images && product.images.length > 0 ? (
                     <img
-                      src={product.images[0].src}
+                      src={getProxyImageUrl(product.images[0].src)}
                       alt={product.title}
                       loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"

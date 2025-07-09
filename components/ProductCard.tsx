@@ -1,3 +1,5 @@
+import { getProxyImageUrl } from '../utils/imageProxy'
+
 interface ProductCardProps {
   id: string
   title: string
@@ -12,7 +14,7 @@ export default function ProductCard({ id, title, images, onClick }: ProductCardP
       onClick={onClick}
     >
       <img
-        src={images?.[0]?.src || ''}
+        src={getProxyImageUrl(images?.[0]?.src || '')}
         alt={title}
         className="w-full h-auto rounded"
       />
