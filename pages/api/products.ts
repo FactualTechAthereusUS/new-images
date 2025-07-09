@@ -52,51 +52,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!cacheValid) {
       console.log('Refreshing Swift Pod cache...')
       
-      // Fetch Swift Pod products with parallel requests for better performance
-      const TOTAL_SWIFT_POD_PRODUCTS = 433
-      const maxPages = 10 // Reduced for faster loading - we'll get most products
-      
-      // Create parallel requests for the first 10 pages
-      const requests = []
-      for (let i = 1; i <= maxPages; i++) {
-        requests.push(
-          axios.get(`${API_BASE}/shops/${shopId}/products.json`, {
-            headers: { 
-              'Authorization': `Bearer ${TOKEN}`,
-              'Content-Type': 'application/json'
-            },
-            params: {
-              page: i,
-              limit: 50
-            }
-          })
-        )
-      }
-      
-      try {
-        // Execute all requests in parallel
-        const responses = await Promise.all(requests)
-        
-        // Combine and filter all products
-        let allProducts: any[] = []
-        for (const response of responses) {
-          const products = response.data.data || []
-          allProducts = allProducts.concat(products)
+      // Strategy: Fast initial load, then background cache building
+      if (swiftPodCache.length === 0) {
+                // First request - get just enough products quickly
+        try {
+          // Try to get products from first few pages in parallel for faster initial load
+          const quickRequests = [
+            axios.get(`${API_BASE}/shops/${shopId}/products.json`, {
+              headers: { 
+                'Authorization': `Bearer ${TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              params: { page: 1, limit: 100 },
+              timeout: 3000
+            }),
+            axios.get(`${API_BASE}/shops/${shopId}/products.json`, {
+              headers: { 
+                'Authorization': `Bearer ${TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              params: { page: 2, limit: 100 },
+              timeout: 3000
+            })
+          ]
+          
+          const quickResponses = await Promise.all(quickRequests)
+          
+          let quickProducts: any[] = []
+          for (const response of quickResponses) {
+            const products = response.data.data || []
+            quickProducts = quickProducts.concat(products)
+          }
+          
+          swiftPodCache = quickProducts.filter((product: any) => 
+            product.print_provider_id === targetProviderId
+          )
+          cacheTimestamp = now
+          console.log(`Quick cache: ${swiftPodCache.length} Swift Pod products`)
+          
+          // Background cache building (don't await)
+          buildFullCache(shopId as string, targetProviderId)
+          
+        } catch (error) {
+          console.error('Quick cache failed:', error)
+          swiftPodCache = []
         }
-        
-        // Filter to only Swift Pod products
-        swiftPodCache = allProducts.filter((product: any) => 
-          product.print_provider_id === targetProviderId
-        )
-        
-        cacheTimestamp = now
-        console.log(`Cached ${swiftPodCache.length} Swift Pod products`)
-        
-      } catch (error) {
-        console.error('Error fetching products in parallel:', error)
-        // Fallback to sequential if parallel fails
-        swiftPodCache = []
-      }
+       } else {
+         // Cache exists but expired - refresh in background
+         buildFullCache(shopId as string, targetProviderId)
+       }
     }
     
     // Use cached data for pagination
@@ -134,5 +138,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('Failed to fetch products:', error)
     res.status(500).json({ error: 'Failed to fetch products' })
+  }
+}
+
+// Background function to build full cache
+async function buildFullCache(shopId: string, targetProviderId: number) {
+  const maxPages = 6 // Reduced from 10 for faster loading
+  
+  try {
+    // Create parallel requests for multiple pages
+    const requests = []
+    for (let i = 1; i <= maxPages; i++) {
+      requests.push(
+        axios.get(`${API_BASE}/shops/${shopId}/products.json`, {
+          headers: { 
+            'Authorization': `Bearer ${TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          params: {
+            page: i,
+            limit: 100 // Increased limit per page
+          },
+          timeout: 8000 // 8 second timeout per request
+        })
+      )
+    }
+    
+    // Execute all requests in parallel
+    const responses = await Promise.all(requests)
+    
+    // Combine and filter all products
+    let allProducts: any[] = []
+    for (const response of responses) {
+      const products = response.data.data || []
+      allProducts = allProducts.concat(products)
+    }
+    
+    // Filter to only Swift Pod products
+    const fullCache = allProducts.filter((product: any) => 
+      product.print_provider_id === targetProviderId
+    )
+    
+    // Update cache only if we got more products
+    if (fullCache.length > swiftPodCache.length) {
+      swiftPodCache = fullCache
+      cacheTimestamp = Date.now()
+      console.log(`Full cache built: ${swiftPodCache.length} Swift Pod products`)
+    }
+    
+  } catch (error) {
+    console.error('Background cache building failed:', error)
   }
 } 

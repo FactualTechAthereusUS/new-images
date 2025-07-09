@@ -33,13 +33,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.send(cached.data)
     }
 
-    // Fetch the image from Printify
+    // Fetch the image from Printify with optimizations
     const response = await axios.get(url, {
       responseType: 'arraybuffer',
-      timeout: 10000,
+      timeout: 8000, // Reduced timeout for faster failure recovery
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'image/webp,image/avif,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+      },
+      maxRedirects: 3
     })
 
     const imageBuffer = Buffer.from(response.data)

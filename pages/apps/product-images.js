@@ -27,7 +27,16 @@ export default function ProductImages() {
       
       // Always filter by Swift Pod provider (ID 39)
       const url = `/api/products?shopId=13337182&page=${currentPage}&limit=${productsPerPage}&providerId=39`
-      const response = await fetch(url)
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      const response = await fetch(url, {
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
       
       if (!response.ok) {
         throw new Error('Failed to fetch products')
@@ -50,6 +59,7 @@ export default function ProductImages() {
       setTotalPages(data.last_page)
       
     } catch (err) {
+      console.error('Load products error:', err)
       setError(err instanceof Error ? err.message : 'Failed to load products')
     } finally {
       setLoading(false)
@@ -90,18 +100,30 @@ export default function ProductImages() {
     return pages
   }
 
-  if (loading) {
+  if (loading && products.length === 0) {
     return (
       <div className="min-h-screen p-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
+            {/* Logo */}
+            <div className="flex justify-start mb-3">
+              <img 
+                src="/logo.png" 
+                alt="Unhinged One" 
+                className="h-6 md:h-10 w-auto object-contain max-w-xs"
+              />
+            </div>
+            
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Product Images</h1>
-            <div className="h-6 bg-gray-200 rounded animate-pulse w-48"></div>
+            <div className="flex items-center space-x-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+              <span className="text-gray-600">Loading Swift Pod products...</span>
+            </div>
           </div>
           
-          {/* Loading skeleton */}
+          {/* Loading skeleton - reduced count for faster perceived loading */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(12)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse">
                 <div className="aspect-square bg-gray-200"></div>
                 <div className="p-4">
