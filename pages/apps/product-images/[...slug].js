@@ -38,7 +38,7 @@ export default function ProductDetail() {
   }
 
   const handleBack = () => {
-    router.push('/apps/product-images')
+    router.push('/apps/product-images/')
   }
 
   if (loading) {

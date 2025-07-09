@@ -67,7 +67,7 @@ export default function ProductImages() {
   }
 
   const handleProductClick = (productId) => {
-    router.push(`/apps/product-images/${productId}`)
+    router.push(`/apps/product-images/${productId}/`)
   }
 
   const filteredProducts = products.filter(product => {
